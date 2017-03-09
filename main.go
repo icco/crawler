@@ -14,11 +14,38 @@ func main() {
 		log.Fatalf("Usage: %s URL", os.Args[0])
 	}
 
-	urls, err := ScrapeUrl(os.Args[1])
-	if err != nil {
-		log.Fatal(err)
+	// Create channels for message passing.
+	messages := make(chan string)
+	finished := make(chan bool)
+	workers := 10
+
+	// Pass in init url
+	messages <- os.Args[1]
+
+	for i := 0; i < workers; {
+		go func() {
+			defer func() {
+				finished <- true
+			}()
+			inc := <-messages
+			log.Printf("%+v", inc)
+
+			urls, err := ScrapeUrl(inc)
+			if err != nil {
+				log.Fatal(err)
+			}
+			for _, u := range urls {
+				messages <- u
+			}
+		}()
+
+		select {
+		case u := <-messages:
+			log.Printf("Recieved: %+v", u)
+		case <-finished:
+			i++
+		}
 	}
-	log.Printf("%v", urls)
 }
 
 func ScrapeUrl(uri string) ([]string, error) {
