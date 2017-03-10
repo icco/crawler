@@ -16,36 +16,23 @@ func main() {
 
 	// Create channels for message passing.
 	messages := make(chan string)
-	finished := make(chan bool)
-	workers := 10
 
 	// Pass in init url
 	messages <- os.Args[1]
 
-	for i := 0; i < workers; {
-		go func() {
-			defer func() {
-				finished <- true
-			}()
-			inc := <-messages
-			log.Printf("%+v", inc)
-
-			urls, err := ScrapeUrl(inc)
-			if err != nil {
-				log.Fatal(err)
-			}
-			for _, u := range urls {
-				messages <- u
-			}
-		}()
-
+	// Each channel will receive a value after some amount
+	// of time, to simulate e.g. blocking RPC operations
+	// executing in concurrent goroutines.
+	go func() {
 		select {
-		case u := <-messages:
-			log.Printf("Recieved: %+v", u)
-		case <-finished:
-			i++
+		case msg := <-messages:
+			log.Println("received message", msg)
+			ScrapeUrl(msg)
+		default:
+			log.Println("no message received")
 		}
-	}
+	}()
+	close(messages)
 }
 
 func ScrapeUrl(uri string) ([]string, error) {
