@@ -14,6 +14,8 @@ func main() {
 		log.Fatalf("Usage: %s URL", os.Args[0])
 	}
 
+	ScrapeUrl(os.Args[1])
+
 	// Create channels for message passing.
 	messages := make(chan string)
 
